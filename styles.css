@@ -196,3 +196,31 @@ body {
     color: black;
     align-self: flex-start;
 }
+
+/* resize columns */
+.resizable {
+    position: relative;
+}
+
+.resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    cursor: col-resize;
+    user-select: none;
+    height: 100%;
+}
+
+.resizer:hover,
+.resizing {
+    border-right: 2px solid blue;
+}
+th {
+    position: relative;
+}
+
+#task-table {
+    table-layout: fixed;
+    width: 100%;
+}

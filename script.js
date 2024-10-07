@@ -20,6 +20,99 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize column control
     initColumnControl();
 
+    // Add column resizing functionality
+    applyColumnVisibility();
+    applyColumnWidths();
+    // const table = document.getElementById('task-table');
+    let currentResizer;
+
+    function createResizableColumn(th) {
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        th.appendChild(resizer);
+        th.style.position = 'relative';
+    
+        let x = 0;
+        let w = 0;
+    
+        const mouseDownHandler = function(e) {
+            x = e.clientX;
+            const styles = window.getComputedStyle(th);
+            w = parseInt(styles.width, 10);
+    
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+    
+            resizer.classList.add('resizing');
+        };
+    
+        const mouseMoveHandler = function(e) {
+            const dx = e.clientX - x;
+            th.style.width = `${w + dx}px`;
+    
+            // Adjust the width of all cells in this column
+            const index = Array.from(th.parentNode.children).indexOf(th);
+            table.querySelectorAll(`tr > *:nth-child(${index + 1})`).forEach(cell => {
+                cell.style.width = `${w + dx}px`;
+            });
+        };
+    
+        const mouseUpHandler = function() {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+            saveConfig(); // Lưu cấu hình sau khi thay đổi kích thước
+        };
+    
+        resizer.addEventListener('mousedown', mouseDownHandler);
+    }function createResizableColumn(th) {
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        th.appendChild(resizer);
+    
+        let x = 0;
+        let w = 0;
+    
+        const mouseDownHandler = function(e) {
+            x = e.clientX;
+            const styles = window.getComputedStyle(th);
+            w = parseInt(styles.width, 10);
+    
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+    
+            resizer.classList.add('resizing');
+        };
+    
+        const mouseMoveHandler = function(e) {
+            const dx = e.clientX - x;
+            th.style.width = `${w + dx}px`;
+    
+            // Adjust the width of all cells in this column
+            const index = Array.from(th.parentNode.children).indexOf(th);
+            table.querySelectorAll(`tr > *:nth-child(${index + 1})`).forEach(cell => {
+                cell.style.width = `${w + dx}px`;
+            });
+        };
+    
+        const mouseUpHandler = function() {
+            resizer.classList.remove('resizing');
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+            saveConfig(); // Add this line
+        };
+    
+        resizer.addEventListener('mousedown', mouseDownHandler);
+    }
+
+    // Apply resizable columns
+    function applyResizableColumns() {
+        table.querySelectorAll('th').forEach(th => createResizableColumn(th));
+    }
+
+    // Call this function after the table is created or updated
+    applyResizableColumns();
+
     // Event listeners
     columnControl.addEventListener('click', openColumnControlModal);
     selectAll.addEventListener('click', selectAllColumns);
@@ -109,15 +202,28 @@ document.addEventListener('DOMContentLoaded', function () {
     function applyColumnVisibility() {
         columns.forEach((column, index) => {
             const cells = table.querySelectorAll(`tr > *:nth-child(${index + 1})`);
-            cells.forEach(cell => cell.style.display = column.visible ? '' : 'none');
+            cells.forEach(cell => {
+                if (column.visible) {
+                    cell.style.display = '';
+                    if (column.width) {
+                        cell.style.width = column.width;
+                    }
+                } else {
+                    cell.style.display = 'none';
+                }
+            });
         });
     }
 
     function saveConfig() {
-        const config = columns.map(column => ({
-            index: column.index,
-            visible: column.visible
-        }));
+        const config = columns.map((column, index) => {
+            const th = table.querySelector(`th:nth-child(${index + 1})`);
+            return {
+                index: column.index,
+                visible: column.visible,
+                width: th.style.width || th.offsetWidth + 'px'
+            };
+        });
         localStorage.setItem('my-datatable-config:/business/order:task-table', JSON.stringify(config));
     }
 
@@ -125,10 +231,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const savedConfig = localStorage.getItem('my-datatable-config:/business/order:task-table');
         if (savedConfig) {
             const config = JSON.parse(savedConfig);
-            columns = columns.map((column, index) => ({
-                ...column,
-                ...config.find(c => c.index === index)
-            }));
+            columns = columns.map((column, index) => {
+                const savedColumn = config.find(c => c.index === index);
+                if (savedColumn) {
+                    column.visible = savedColumn.visible;
+                    column.width = savedColumn.width;
+                }
+                return column;
+            });
         }
+    }
+
+    function applyColumnWidths() {
+        columns.forEach((column, index) => {
+            if (column.width) {
+                const cells = table.querySelectorAll(`tr > *:nth-child(${index + 1})`);
+                cells.forEach(cell => {
+                    cell.style.width = column.width;
+                });
+            }
+        });
     }
 });
